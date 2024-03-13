@@ -4,19 +4,17 @@ import android.annotation.SuppressLint
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
-import android.media.Image
-import android.speech.tts.TextToSpeech
 import android.widget.Toast
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.combinedClickable
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -26,20 +24,22 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Send
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonColors
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TopAppBar
-import androidx.compose.material3.TopAppBarColors
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -54,14 +54,13 @@ import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import com.example.vs_aiapp.MainActivity
+import androidx.compose.ui.unit.sp
 import com.example.vs_aiapp.R
 import com.example.vs_aiapp.ui.theme.Blue
 import com.example.vs_aiapp.ui.theme.DarkBlue
@@ -77,133 +76,132 @@ fun AIScreen(aiViewModel: AiViewModel) {
     val lazyColumnListState = rememberLazyListState()
     val coroutineScope1 = rememberCoroutineScope()
     val context = LocalContext.current
-    val tts: TextToSpeech? = null
+
+    val scrollState = rememberScrollState()
 
     val responseList = aiViewModel.data.toList()
     var text by remember {
         mutableStateOf("")
     }
 
-
-
-
     Scaffold(topBar = {
         TopAppBar(
             title = {
                 Text(
                     "VS AI",
-                    style = TextStyle(color = Color.White),
+                    style = TextStyle(color = Color.White, fontSize = 20.sp),
                 )
             },
-            colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = MateBlack),
+
+            colors = TopAppBarDefaults.mediumTopAppBarColors(containerColor = DarkBlue),
         )
     }, containerColor = MateBlack) {
 
-        Box(Modifier.fillMaxSize()) {
-            Column(
-                Modifier.padding(top = 60.dp)
-            ) {
-                LazyColumn(
-                    Modifier.weight(1f),
-                    state = lazyColumnListState,
-                    content = {
-                        items(responseList.size) {
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(10.dp)
+
+
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .verticalScroll(state = scrollState),
+        ) {
+
+            LazyColumn(
+                Modifier.weight(1f).padding(top = 60.dp),
+                state = lazyColumnListState,
+                content = {
+                    items(responseList.size) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(10.dp)
+                        ) {
+                            Box(modifier = Modifier
+                                .align(if (responseList[it].replayBy == "User") Alignment.CenterEnd else Alignment.CenterStart)
+                                .clip(shape = RoundedCornerShape(20f))
+                                .fillMaxWidth(0.7f)
+                                .background(
+                                    brush = Brush.horizontalGradient(
+                                        listOf(DarkBlue, Blue)
+                                    ),
+                                )
+                                .combinedClickable(onLongClick = {
+                                    copy(context, responseList.get(it).msg)
+                                    Toast
+                                        .makeText(context, "Copy", Toast.LENGTH_SHORT)
+                                        .show()
+                                }) {}
+
                             ) {
-                                Box(modifier = Modifier
-                                    .align(if (responseList[it].replayBy == "User") Alignment.CenterEnd else Alignment.CenterStart)
-                                    .clip(shape = RoundedCornerShape(20f))
-                                    .fillMaxWidth(0.7f)
-                                    .background(
-                                        brush = Brush.horizontalGradient(
-                                            listOf(DarkBlue, Blue)
-                                        ),
+                                Column(modifier = Modifier.padding(10.dp)) {
+                                    Text(
+                                        responseList[it].msg
                                     )
-                                    .combinedClickable(onLongClick = {
-                                        copy(context, responseList.get(it).msg)
-                                        Toast
-                                            .makeText(context, "Copy", Toast.LENGTH_SHORT)
-                                            .show()
-                                    }) {}
+                                    Spacer(modifier = Modifier.height(10.dp))
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
 
-                                ) {
-                                    Column(modifier = Modifier.padding(10.dp)) {
-                                        Text(
-                                            responseList[it].msg
-                                        )
-                                        Spacer(modifier = Modifier.height(10.dp))
-                                        Row(
-                                            modifier = Modifier.fillMaxWidth(),
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            verticalAlignment = Alignment.CenterVertically
-                                        ) {
-
-                                            IconButton(onClick = {
-                                                tts?.shutdown()
-                                                tts?.speak(
-                                                    responseList.get(it).msg,
-                                                    TextToSpeech.QUEUE_FLUSH,
-                                                    null,
-                                                    null
-                                                )
-                                            }, content = {
-                                                Image(
-                                                    imageVector = ImageVector.vectorResource(R.drawable.baseline_volume_up_24),
-                                                    contentDescription = "",
-                                                    Modifier
-                                                        .width(20.dp)
-                                                        .height(20.dp)
-
-                                                )
-                                            })
-                                            Text(
-                                                responseList[it].replayBy,
-                                                modifier = Modifier.fillMaxWidth(),
-                                                style = TextStyle(fontWeight = FontWeight.Bold),
-                                                textAlign = if (responseList[it].replayBy == "User") TextAlign.Right else TextAlign.Left
+                                        IconButton(onClick = {
+                                            aiViewModel.textToSpeech(
+                                                context,
+                                                responseList.get(it).msg
                                             )
+                                        }, content = {
+                                            Image(
+                                                imageVector = ImageVector.vectorResource(R.drawable.baseline_volume_up_24),
+                                                contentDescription = "",
+                                                Modifier
+                                                    .width(20.dp)
+                                                    .height(20.dp)
 
-                                        }
+                                            )
+                                        })
+                                        Text(
+                                            responseList[it].replayBy,
+                                            modifier = Modifier.fillMaxWidth(),
+                                            style = TextStyle(fontWeight = FontWeight.Bold),
+                                            textAlign = if (responseList[it].replayBy == "User") TextAlign.Right else TextAlign.Left
+                                        )
+
                                     }
                                 }
                             }
                         }
+                    }
+                },
+            )
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .padding(bottom = 20.dp, start = 10.dp, end = 10.dp, top = 60.dp)
+                    .fillMaxWidth()
+            ) {
+                OutlinedTextField(
+                    value = text,
+                    onValueChange = {
+                        text = it
                     },
-                )
-
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
+                    textStyle = TextStyle(color = Color.White),
                     modifier = Modifier
-                        .padding(bottom = 20.dp, start = 10.dp, end = 10.dp)
-                        .fillMaxWidth()
-                ) {
-                    TextField(
-                        value = text,
-                        onValueChange = {
-                            text = it
-                        },
-                        modifier = Modifier
-                            .weight(1f)
-                            .bringIntoViewRequester(bringIntoViewRequester)
-                            .onFocusEvent { focusState ->
-                                if (focusState.isFocused) {
-                                    coroutineScope1.launch {
-                                        bringIntoViewRequester.bringIntoView()
-                                        lazyColumnListState.scrollToItem(responseList.size)
-                                    }
+                        .weight(1f)
+                        .bringIntoViewRequester(bringIntoViewRequester)
+                        .onFocusEvent { focusState ->
+                            if (focusState.isFocused) {
+                                coroutineScope1.launch {
+                                    bringIntoViewRequester.bringIntoView()
+                                    lazyColumnListState.scrollToItem(responseList.size)
                                 }
-                            },
-                        label = { Text("Prompt") },
-                    )
-                    FilledTonalIconButton(onClick = {
-                        aiViewModel.getResponse(text)
-                        text = ""
-                    }, content = { Icon(Icons.Filled.Send, contentDescription = "") })
+                            }
+                        },
+                    label = { Text("Prompt") },
+                )
+                FilledTonalIconButton(onClick = {
+                    aiViewModel.getResponse(text)
+                    text = ""
+                }, content = { Icon(Icons.Filled.Send, contentDescription = "") })
 
-                }
             }
         }
 
